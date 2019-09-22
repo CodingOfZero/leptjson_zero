@@ -4,6 +4,7 @@
 typedef enum { LEPT_NULL,LEPT_FALSE,LEPT_TRUE,LEPT_NUMBER,LEPT_STRING,LEPT_ARRAY,LEPT_OBJECT}lept_type; //json数据类型 
 typedef struct{			//json数据结构 
 	lept_type type;
+	double n; 
 }lept_value;
 enum{					//返回值 
 	LEPT_PARSE_OK=0,
