@@ -3,9 +3,15 @@
 /*最常用的是在函数开始的地方，检测所有参数，
 有时候也可在调用函数后，检查上下文是否正确
 若错误是由程序员错误编码（例如传入不合法参数）此时用断言
-若错误是程序员无法避免的，而是由运行时环境造成（开启文件失败），要抛出异常*/ 
+若错误是程序员无法避免的，而是由运行时环境造成（开启文件失败），要抛出异常*/
 #include<stdlib.h> 	//"NULL ,strtod()" 
+#include<errno.h> /*errno, ERANGE*/
+#include<math.h> /*HUGE_VAL*/
+
 #define EXPECT(c,ch)	do{assert(*c->json==(ch)); c->json++; }while(0)
+#define ISDIGIT(ch) ((ch)>='0'&&(ch)<='9')
+#define ISDIGIT1TO9(ch) ((ch)>='1'&&(ch)<='9')
+
 typedef struct{
 	const char* json;
 }lept_context;
@@ -56,11 +62,34 @@ static int lept_parse_literal(lept_context *c,lept_value *v,const char* literal,
 }
 
 static int lept_parse_number(lept_context *c,lept_value *v){
-	char *endp;
-	v->n=strtod(c->json,&endp);
-	if(c->json==endp)
-		return LEPT_PARSE_INVALID_VALUE;
-	c->json=endp;
+	const char *p=c->json;
+	if(*p=='-') p++;/* 负号 ... */
+    if(*p=='0'){
+    	p++;
+    	if(ISDIGIT1TO9(*p)) return LEPT_PARSE_INVALID_VALUE;
+	}
+	else{
+		if(!ISDIGIT1TO9(*p)) return LEPT_PARSE_INVALID_VALUE;
+		for(p++;ISDIGIT(*p);p++);
+	}/* 整数 ... */
+	
+    if(*p=='.'){
+		p++;
+		if(!ISDIGIT(*p)) return LEPT_PARSE_INVALID_VALUE;
+		for(p++;ISDIGIT(*p);p++);
+	}/* 小数,检查它至少应有一个 digit，不是 digit 就返回错误 */
+    if(*p=='e'||*p=='E'){
+		p++;
+		if(*p=='+'||*p=='-') p++;
+		if(!ISDIGIT(*p)) return LEPT_PARSE_INVALID_VALUE;
+		for(p++;ISDIGIT(*p);p++);
+	}/* 指数 ... */
+	
+	errno=0;
+	v->n=strtod(c->json,NULL);
+	if((errno==ERANGE)&&(v->n==HUGE_VAL || v->n==-HUGE_VAL)) //v->==0 会产生 Assertion failed!File: leptjson.c, Line 104
+		return LEPT_PARSE_NUMBER_TOO_BIG;
+	c->json=p;
 	v->type=LEPT_NUMBER;
 	return LEPT_PARSE_OK;
 }
@@ -73,10 +102,7 @@ static int lept_parse_value(lept_context *c,lept_value *v){
 		default: return lept_parse_number(c,v);
 	}
 }
-double lept_get_number(const lept_value* v){
-	assert(v!=NULL&&v->type==LEPT_NUMBER);
-	return v->n;
-}
+
 int lept_parse(lept_value *v,const char*json){
 	lept_context c;
 	int ret; 
@@ -95,4 +121,8 @@ int lept_parse(lept_value *v,const char*json){
 lept_type lept_get_type(const lept_value *v){
 	assert(v!=NULL);
 	return v->type;
+}
+double lept_get_number(const lept_value* v){
+	assert(v!=NULL&&v->type==LEPT_NUMBER);
+	return v->n;
 }

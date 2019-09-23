@@ -10,9 +10,10 @@ enum{					//返回值
 	LEPT_PARSE_OK=0,
 	LEPT_PARSE_EXPECT_VALUE,
 	LEPT_PARSE_INVALID_VALUE,
-	LEPT_PARSE_ROOT_NOT_SINGULAR
+	LEPT_PARSE_ROOT_NOT_SINGULAR,
+	LEPT_PARSE_NUMBER_TOO_BIG
 };
 int lept_parse(lept_value *v,const char*json); 	//解析函数 
 lept_type lept_get_type(const lept_value *v);	//获取结果的类型 
-
+double lept_get_number(const lept_value* v); //解析数字 
 #endif /*LEPTJSON_H_*/
