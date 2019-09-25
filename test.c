@@ -137,6 +137,16 @@ static void test_parse_number(){
 	TEST_NUMBER( 1.7976931348623157e+308, "1.7976931348623157e+308");
 	TEST_NUMBER(-1.7976931348623157e+308, "-1.7976931348623157e+308");
 }
+//²âÊÔ×Ö·û´® 
+/*static test_parse_string(){
+	lept_value v;
+	lept_init(&v);
+	lept_set_string(&v,"",0);
+	EXPECT_EQ_STRING("", lept_get_string(&v), lept_get_string_length(&v));
+	lept_set_string(&v, "Hello", 5);
+	EXPECT_EQ_STRING("Hello", lept_get_string(&v), lept_get_string_length(&v));
+	lept_free(&v);	
+}*/
 static void test_parse(){
 	test_parse_null();
 	test_parse_false();
