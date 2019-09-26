@@ -129,7 +129,10 @@ static int lept_parse_string(lept_context *c,lept_value *v){
 		char ch=*p++;
 		switch(ch){
 			case'\"':
-				
+				len=c->top-head; 
+				lept_set_string(v,(const char*)lept_context_pop(c,len),len);
+				c->json=p;
+				return LEPT_PARSE_OK;
 			case'\0':
 				c->top=head;
 				return LEPT_PARSE_MISS_QUOTATION_MARK;
@@ -146,9 +149,31 @@ static int lept_parse_value(lept_context *c,lept_value *v){
 		case'f':return lept_parse_literal(c,v,"false",LEPT_FALSE);
 		case't':return lept_parse_literal(c,v,"true",LEPT_TRUE);
 		case'\0':return LEPT_PARSE_EXPECT_VALUE;
+		case'"':return lept_parse_string(c,v);
 		default: return lept_parse_number(c,v);
 	}
 }
+/*******************************解析函数*********************************/  
+int lept_parse(lept_value *v,const char*json){
+	lept_context c;
+	int ret; 
+	assert(v != NULL);
+	c.json=json;
+	c.stack=NULL;
+	c.size=c.top=0;
+	lept_init(v);
+	lept_parse_whitespace(&c);
+	if((ret=lept_parse_value(&c,v))==LEPT_PARSE_OK){
+			lept_parse_whitespace(&c);
+			if(*c.json != '\0')
+				ret=LEPT_PARSE_ROOT_NOT_SINGULAR;
+	}
+	assert(c.top==0);//确保所有数据都被弹出
+	free(c.stack); 
+	return ret;
+	
+}
+/*************************************函数实现*********************************/
 lept_type lept_get_type(const lept_value *v){
 	assert(v!=NULL);
 	return v->type;
@@ -167,6 +192,7 @@ void lept_set_boolean(lept_value *v,int b){
 }
 void lept_set_number(lept_value *v,double n){
 	assert(v!=NULL);//是否需要判断n 
+	v->type=LEPT_NUMBER;
 	v->u.n=n;
 }
 double lept_get_number(const lept_value* v){
@@ -190,40 +216,9 @@ void lept_set_string(lept_value* v,const char* s,size_t len){
 	v->u.s.len=len;
 	v->type=LEPT_STRING;
 }
-
 void lept_free(lept_value *v){
 	assert(v!=NULL);
 	if(v->type==LEPT_STRING)
 		free(v->u.s.s);
 	v->type=LEPT_NULL;
 }
-
-/*******************************解析函数*********************************/  
-int lept_parse(lept_value *v,const char*json){
-	lept_context c;
-	int ret; 
-	assert(v != NULL);
-	c.json=json;
-	c.stack=NULL;
-	c.size=c.top=0;
-	lept_init(v);
-	lept_parse_whitespace(&c);
-	if((ret=lept_parse_value(&c,v))==LEPT_PARSE_OK){
-			lept_parse_whitespace(&c);
-			if(*c.json != '\0')
-				ret=LEPT_PARSE_ROOT_NOT_SINGULAR;
-	}
-	assert(c.top==0);//确保所有数据都被弹出
-	free(c.stack); 
-	return ret;
-	
-}
-
-
-
-
-
-
-
-
-
