@@ -13,13 +13,15 @@ typedef struct{			//json数据结构
 		double n; 	
 	}u; 
 }lept_value;
-enum{					//返回值 
-	LEPT_PARSE_OK=0,
+enum {					//返回值 
+	LEPT_PARSE_OK = 0,
 	LEPT_PARSE_EXPECT_VALUE,
 	LEPT_PARSE_INVALID_VALUE,
 	LEPT_PARSE_ROOT_NOT_SINGULAR,
 	LEPT_PARSE_NUMBER_TOO_BIG,
-	LEPT_PARSE_MISS_QUOTATION_MARK 
+	LEPT_PARSE_MISS_QUOTATION_MARK,
+	LEPT_PARSE_INVALID_STRING_ESCAPE,
+	LEPT_PARSE_INVALID_STRING_CHAR
 };
 #define lept_init(v) do{ (v)->type = LEPT_NULL; }while(0) //暂时未懂 ,用->与.之间区别 
 #define lept_set_null(v) lept_free(v)

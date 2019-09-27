@@ -1,3 +1,8 @@
+#ifdef _WINDOWS
+#define _CRTDBG_MAP_ALLOC
+#include<crtdbg.h>
+#endif
+
 #include"leptjson.h"
 #include<assert.h>	//断言 
 /*最常用的是在函数开始的地方，检测所有参数，
@@ -128,16 +133,36 @@ static int lept_parse_string(lept_context *c,lept_value *v){
 	for(;;){
 		char ch=*p++;
 		switch(ch){
-			case'\"':
-				len=c->top-head; 
-				lept_set_string(v,(const char*)lept_context_pop(c,len),len);
-				c->json=p;
-				return LEPT_PARSE_OK;
-			case'\0':
-				c->top=head;
-				return LEPT_PARSE_MISS_QUOTATION_MARK;
+		case'\\':
+			switch (*p++)
+			{
+			case'\"':  PUTC(c, '\"'); break;
+			case'\\':  PUTC(c, '\\'); break;
+			case '/':  PUTC(c, '/'); break;
+			case 'b':  PUTC(c, '\b'); break;
+			case 'f':  PUTC(c, '\f'); break;
+			case 'n':  PUTC(c, '\n'); break;
+			case 'r':  PUTC(c, '\r'); break;
+			case 't':  PUTC(c, '\t'); break;
 			default:
-				PUTC(c,ch);
+				c->top = head;
+				return LEPT_PARSE_INVALID_STRING_ESCAPE;
+			}
+			break;
+		case'\"':
+			len=c->top-head; 
+			lept_set_string(v,(const char*)lept_context_pop(c,len),len);
+			c->json=p;
+			return LEPT_PARSE_OK;
+		case'\0':
+			c->top=head;
+			return LEPT_PARSE_MISS_QUOTATION_MARK;
+		default:
+			if ((unsigned char)ch < 0x20) { //char是否带符号，由实现定义，若不进行转换，ch>=80的字符，
+				c->top = head;				//都会变为负数，并产生该错误。
+				return LEPT_PARSE_INVALID_STRING_CHAR;
+			}
+			PUTC(c,ch);
 		}
 	}
 	
@@ -179,21 +204,22 @@ lept_type lept_get_type(const lept_value *v){
 	return v->type;
 }
 int lept_get_boolean(const lept_value *v){
-	assert(v!=NULL);
-	int i;
-	i=(v->type==LEPT_FALSE)? 0 : 1;
-	return i;	
+	assert(v!=NULL&&(v->type==LEPT_FALSE||v->type==LEPT_TRUE));
+	return v->type==LEPT_TRUE;	
 }
 void lept_set_boolean(lept_value *v,int b){
-	if(b==0)
+	lept_free(v);
+	v->type=b?LEPT_TRUE:LEPT_FALSE;
+	/*if(b==0)
 		v->type=LEPT_FALSE;
 	else
-		v->type=LEPT_TRUE;		
+		v->type=LEPT_TRUE;*/		
 }
 void lept_set_number(lept_value *v,double n){
-	assert(v!=NULL);//是否需要判断n 
-	v->type=LEPT_NUMBER;
+	assert(v!=NULL);
+	lept_free(v);
 	v->u.n=n;
+	v->type=LEPT_NUMBER;
 }
 double lept_get_number(const lept_value* v){
 	assert(v!=NULL&&v->type==LEPT_NUMBER);
