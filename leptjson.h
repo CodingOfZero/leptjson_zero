@@ -3,16 +3,15 @@
 #define LEPTJSON_H_
 #include<stdio.h> // "size_t"
 typedef enum { LEPT_NULL,LEPT_FALSE,LEPT_TRUE,LEPT_NUMBER,LEPT_STRING,LEPT_ARRAY,LEPT_OBJECT}lept_type; //json数据类型 
-typedef struct{			//json数据结构 
+typedef struct lept_value lept_value;//前向声明(forward declare)
+struct lept_value{			//json数据结构 
 	lept_type type;
 	union{
-		struct{
-			char *s;
-			size_t len;
-		}s;
+		struct{	char *s;	size_t len;	}s;
+		struct { lept_value* e; size_t size; }a;//array,size为元素个数
 		double n; 	
 	}u; 
-}lept_value;
+};
 enum {					//返回值 
 	LEPT_PARSE_OK = 0,
 	LEPT_PARSE_EXPECT_VALUE,
@@ -23,7 +22,8 @@ enum {					//返回值
 	LEPT_PARSE_INVALID_STRING_ESCAPE,
 	LEPT_PARSE_INVALID_STRING_CHAR,
 	LEPT_PARSE_INVALID_UNICODE_HEX,
-	LEPT_PARSE_INVALID_UNICODE_SURROGATE
+	LEPT_PARSE_INVALID_UNICODE_SURROGATE,
+	LEPT_PARSE_MISS_COMMA_OR_SQUARE_BRACKET
 };
 #define lept_init(v) do{ (v)->type = LEPT_NULL; }while(0) //暂时未懂 ,用->与.之间区别 
 #define lept_set_null(v) lept_free(v)
@@ -41,6 +41,10 @@ const char* lept_get_string(const lept_value* v);//字符串
 size_t lept_get_string_length(const lept_value* v);
 void lept_set_string(lept_value* v,const char* s,size_t len);
 
+size_t lept_get_array_size(const lept_value* v);//数组
+lept_value* lept_get_array_element(const lept_value* v, size_t index);
+
+
 void lept_free(lept_value *v);
- 
+
 #endif /*LEPTJSON_H_*/

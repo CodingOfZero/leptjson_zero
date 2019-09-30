@@ -121,6 +121,19 @@ static void test_parse_string() {
 	TEST_STRING("\xF0\x9D\x84\x9E", "\"\\uD834\\uDD1E\"");  /* G clef sign U+1D11E */
 	TEST_STRING("\xF0\x9D\x84\x9E", "\"\\ud834\\udd1e\"");  /* G clef sign U+1D11E */
 }
+#if defined(_MSC_VER)
+#define EXPECT_EQ_SIZE_T(expect,actual) EXPECT_EQ_BASE((expect)==(actual),(size_t)expect,(size_t)actual,"%Iu0")
+#else
+#define EXPECT_EQ_SIZE_T(expect,actual) EXPECT_EQ_BASE((expect)==(actual),(size_t)expect,(size_t)actual,"%Iu0")
+#endif
+static void test_parse_array() {
+	lept_value v;
+	lept_init(&v);
+	EXPECT_EQ_INT(LEPT_PARSE_OK, lept_parse(&v, "[ ]"));
+	EXPECT_EQ_INT(LEPT_ARRAY, lept_get_type(&v));
+	EXPECT_EQ_SIZE_T(0, lept_get_array_size(&v));
+	lept_free(&v);
+}
 /***********************************≤‚ ‘¥ÌŒÛ∑µªÿ*****************************************/
 static void test_parse_expect_value(){
 #if 0
