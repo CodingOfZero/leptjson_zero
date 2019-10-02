@@ -216,9 +216,10 @@ static int lept_parse_string(lept_context *c,lept_value *v){
 	
 }
 static int lept_parse_array(lept_context* c, lept_value* v) {
-	size_t size = 0;
+	size_t i,size = 0;
 	int ret;
 	EXPECT(c, '[');
+	lept_parse_whitespace(c);
 	if (*c->json == ']') {
 		c->json++;
 		v->type = LEPT_ARRAY;
@@ -230,12 +231,14 @@ static int lept_parse_array(lept_context* c, lept_value* v) {
 		lept_value e;
 		lept_init(&e);
 		if ((ret = lept_parse_value(c, &e)) != LEPT_PARSE_OK)
-			return ret;
+			break;
 		memcpy(lept_context_push(c, sizeof(lept_value)), &e, sizeof(lept_value));
 		size++;
-		if (*c->json == ',')
+		lept_parse_whitespace(c);
+		if (*c->json == ',') {
 			c->json++;
-		else if (*c->json == ']') {
+			lept_parse_whitespace(c);
+		}else if (*c->json == ']') {
 			c->json++;
 			v->type = LEPT_ARRAY;
 			v->u.a.size = size;
@@ -246,6 +249,10 @@ static int lept_parse_array(lept_context* c, lept_value* v) {
 		else
 			return LEPT_PARSE_MISS_COMMA_OR_SQUARE_BRACKET;
 	}
+	/*Pop and free values on the stack*/
+	for (i = 0; i < size; i++) 
+		lept_free((lept_value*)lept_context_pop(c, sizeof(lept_value)));
+	return ret;
 }
 /*******************************解析类型判断*********************************/ 
 static int lept_parse_value(lept_context *c,lept_value *v){
@@ -324,9 +331,20 @@ void lept_set_string(lept_value* v,const char* s,size_t len){
 	v->type=LEPT_STRING;
 }
 void lept_free(lept_value *v){
+	size_t i;
 	assert(v!=NULL);
-	if(v->type==LEPT_STRING)
+	switch (v->type)
+	{
+	case LEPT_STRING:
 		free(v->u.s.s);
+		break;
+	case LEPT_ARRAY://先把数组内元素通过递归调用lept_free()释放，然后才释放本身的v->u.a.e
+		for (i = 0; i < v->u.a.size; i++)
+			lept_free(&v->u.a.e[i]);
+		free(v->u.a.e);
+	default:
+		break;
+	}
 	v->type=LEPT_NULL;
 }
 size_t lept_get_array_size(const lept_value* v) {
